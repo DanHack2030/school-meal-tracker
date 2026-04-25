@@ -1,0 +1,51 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String    @id @default(uuid())
+  username           String    @unique
+  fullName           String?
+  course             String?
+  passwordHash       String
+  role               String    // "ADMIN", "TEACHER" or "PARENT"
+  email              String?   @unique
+  mustChangePassword Boolean   @default(false)
+  students           Student[] @relation("TeacherStudents")
+  parentOf           Student[] @relation("ParentStudents")
+  authoredMeals      MealRecord[] @relation("TeacherMeals")
+  isActive           Boolean   @default(true)
+}
+
+model Student {
+  id        String       @id @default(uuid())
+  name      String
+  age       Int?
+  course    String?
+  teacherId String
+  teacher   User         @relation("TeacherStudents", fields: [teacherId], references: [id])
+  parentId    String?
+  parent      User?        @relation("ParentStudents", fields: [parentId], references: [id])
+  medicalInfo String?
+  meals       MealRecord[]
+}
+
+model MealRecord {
+  id         String   @id @default(uuid())
+  studentId  String
+  student    Student  @relation(fields: [studentId], references: [id])
+  teacherId  String?
+  teacher    User?    @relation("TeacherMeals", fields: [teacherId], references: [id])
+  date       DateTime @default(now())
+  mainCourse String   // "NADA", "1/4", "1/2", "TODO"
+  salad      String   // "NADA", "1/4", "1/2", "TODO"
+  dessert    String   // "NADA", "1/4", "1/2", "TODO"
+}
