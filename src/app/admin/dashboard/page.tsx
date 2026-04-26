@@ -34,6 +34,7 @@ interface Teacher {
 
 interface NewTeacherResponse {
   username: string;
+  email?: string | null;
   tempPassword: string;
 }
 
@@ -297,8 +298,8 @@ export default function AdminDashboard() {
               <p>Comparte estas credenciales temporales con el docente:</p>
               <div className="credentials-grid">
                 <div className="credential-item">
-                  <span className="cred-label">Usuario</span>
-                  <span className="cred-value">{success.username}</span>
+                  <span className="cred-label">Correo Electrónico</span>
+                  <span className="cred-value">{success.email || success.username}</span>
                 </div>
                 <div className="credential-item">
                   <span className="cred-label">Contraseña Temporal</span>
@@ -346,7 +347,7 @@ export default function AdminDashboard() {
                   <th onClick={() => handleSort('fullName')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>Nombre del Profesor {sortField === 'fullName' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                   <th onClick={() => handleSort('email')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>Correo {sortField === 'email' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                   <th onClick={() => handleSort('course')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>Curso {sortField === 'course' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                  <th onClick={() => handleSort('username')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>Usuario {sortField === 'username' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+
                   <th onClick={() => handleSort('students')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>Alumnos {sortField === 'students' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                   <th>Estado</th>
                   <th style={{ textAlign: 'right' }}>Acciones</th>
@@ -363,7 +364,7 @@ export default function AdminDashboard() {
                       <td className="parent-username" style={{ fontWeight: 600 }}>🎓 {t.fullName}</td>
                       <td style={{ fontSize: '0.85rem' }}>{t.email || <span className="text-muted">Sin correo</span>}</td>
                       <td><span className="parent-chip" style={{ background: 'rgba(219, 39, 119, 0.1)', color: '#ec4899', border: '1px solid #ec4899' }}>{t.course}</span></td>
-                      <td style={{ opacity: 0.8 }}>{t.username}</td>
+
                       <td>{t._count.students}</td>
                       <td>
                         <span className={`status-chip ${t.isActive ? 'chip-ok' : 'chip-warning'}`}>
