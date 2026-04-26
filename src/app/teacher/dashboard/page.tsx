@@ -588,7 +588,7 @@ export default function TeacherDashboard() {
   };
 
   const handleSaveParent = async () => {
-    if (!parentUsername.trim()) { setParentError('El usuario es requerido.'); return; }
+    if (!parentFullName.trim()) { setParentError('El usuario es requerido.'); return; }
     if (!editingParent && !parentPassword) { setParentError('La contraseña es requerida.'); return; }
     if (!editingParent && !studentName.trim()) { setParentError('El nombre del alumno es requerido.'); return; }
     setSavingParent(true);
