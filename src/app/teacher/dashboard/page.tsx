@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import './teacher.css';
 
-type MealLevel = 'NADA' | '1/4' | '1/2' | 'TODO';
+type ConsumptionLevel = 'NADA' | 'POCO' | 'TODO';
 type Tab = 'registros' | 'apoderados' | 'historial';
 
 interface UserInfo {
@@ -16,9 +16,10 @@ interface UserInfo {
 
 interface MealRecord {
   id: string;
-  mainCourse: MealLevel;
-  salad: MealLevel;
-  dessert: MealLevel;
+  menuText?: string | null;
+  menuImage?: string | null;
+  consumption?: ConsumptionLevel | string | null;
+  observation?: string | null;
   teacher?: { username: string; fullName: string | null };
 }
 
@@ -56,17 +57,19 @@ interface Parent {
 interface HistoryRecord {
   id: string;
   date: string;
-  mainCourse: MealLevel;
-  salad: MealLevel;
-  dessert: MealLevel;
+  menuText?: string | null;
+  menuImage?: string | null;
+  consumption?: ConsumptionLevel | string | null;
+  observation?: string | null;
   student: { id: string; name: string };
   teacher: { username: string; fullName: string | null };
 }
 
-const mealOptions: MealLevel[] = ['NADA', '1/4', '1/2', 'TODO'];
+const consumptionOptions: ConsumptionLevel[] = ['NADA', 'POCO', 'TODO'];
 
-const mealColor: Record<MealLevel, string> = {
+const consumptionColor: Record<string, string> = {
   'NADA': 'badge-none',
+  'POCO': 'badge-quarter',
   '1/4': 'badge-quarter',
   '1/2': 'badge-half',
   'TODO': 'badge-full',
@@ -87,45 +90,72 @@ function StudentCard({
   onRefetch: () => void;
 }) {
   const existingMeal = student.meals[0];
-  const [mainCourse, setMainCourse] = useState<MealLevel>(existingMeal?.mainCourse || 'NADA');
-  const [salad, setSalad] = useState<MealLevel>(existingMeal?.salad || 'NADA');
-  const [dessert, setDessert] = useState<MealLevel>(existingMeal?.dessert || 'NADA');
+  const [menuText, setMenuText] = useState(existingMeal?.menuText || '');
+  const [menuImage, setMenuImage] = useState<File | null>(null);
+  const [previewImage, setPreviewImage] = useState(existingMeal?.menuImage || '');
+  const [consumption, setConsumption] = useState<ConsumptionLevel | string>(existingMeal?.consumption || 'NADA');
+  const [observation, setObservation] = useState(existingMeal?.observation || '');
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-  // Update local state when existingMeal changes (e.g. after background refetch)
+  // Update local state when existingMeal changes
   useEffect(() => {
     if (existingMeal) {
-      setMainCourse(existingMeal.mainCourse);
-      setSalad(existingMeal.salad);
-      setDessert(existingMeal.dessert);
+      setMenuText(existingMeal.menuText || '');
+      setPreviewImage(existingMeal.menuImage || '');
+      setConsumption(existingMeal.consumption || 'NADA');
+      setObservation(existingMeal.observation || '');
     } else {
-      setMainCourse('NADA');
-      setSalad('NADA');
-      setDessert('NADA');
+      setMenuText('');
+      setPreviewImage('');
+      setConsumption('NADA');
+      setObservation('');
     }
   }, [existingMeal]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setMenuImage(file);
+      setPreviewImage(URL.createObjectURL(file));
+    }
+  };
 
   const handleSave = async () => {
     setLoading(true);
     setSaveStatus('idle');
     try {
+      let imageUrl = previewImage;
+      if (menuImage) {
+        const formData = new FormData();
+        formData.append('file', menuImage);
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        if (uploadRes.ok) {
+          const { url } = await uploadRes.json();
+          imageUrl = url;
+        }
+      }
+
       const res = await fetch('/api/meals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           studentId: student.id,
           date: new Date().toISOString(),
-          mainCourse,
-          salad,
-          dessert,
+          menuText,
+          menuImage: imageUrl,
+          consumption,
+          observation
         }),
       });
       if (res.ok) {
         setSaveStatus('success');
         setTimeout(() => {
           setSaveStatus('idle');
-          onRefetch(); // Trigger global refresh
+          onRefetch();
         }, 800);
       } else {
         setSaveStatus('error');
@@ -137,15 +167,15 @@ function StudentCard({
     }
   };
 
-  const renderSelector = (label: string, value: MealLevel, setter: (v: MealLevel) => void) => (
+  const renderConsumptionSelector = () => (
     <div className="meal-selector">
-      <span className="selector-label">{label}</span>
+      <span className="selector-label">Nivel de Consumo</span>
       <div className="segmented-control">
-        {mealOptions.map((opt) => (
+        {consumptionOptions.map((opt) => (
           <button
             key={opt}
-            onClick={() => setter(opt)}
-            className={`segment-btn ${value === opt ? 'active' : ''}`}
+            onClick={() => setConsumption(opt)}
+            className={`segment-btn ${consumption === opt ? 'active' : ''}`}
             disabled={loading}
           >
             {opt}
@@ -190,10 +220,21 @@ function StudentCard({
         </div>
       </div>
 
-      <div className="selectors-container">
-        {renderSelector('Plato Principal', mainCourse, setMainCourse)}
-        {renderSelector('Ensalada', salad, setSalad)}
-        {renderSelector('Postre', dessert, setDessert)}
+      <div className="selectors-container" style={{ gap: '1rem' }}>
+        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <span className="selector-label">Menú Consumido</span>
+          <input type="text" className="form-input" placeholder="Ej: Fideos con salsa" value={menuText} onChange={(e) => setMenuText(e.target.value)} disabled={loading} />
+        </div>
+        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <span className="selector-label">Foto del Plato (Opcional)</span>
+          <input type="file" accept="image/*" onChange={handleImageChange} disabled={loading} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }} />
+          {previewImage && <img src={previewImage} alt="Preview" style={{ marginTop: '0.5rem', maxHeight: '100px', objectFit: 'cover', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />}
+        </div>
+        {renderConsumptionSelector()}
+        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <span className="selector-label">Observación</span>
+          <textarea className="form-input" placeholder="Comió con dificultad..." value={observation} onChange={(e) => setObservation(e.target.value)} disabled={loading} rows={2} style={{ resize: 'vertical' }} />
+        </div>
       </div>
 
       <div className="card-footer">
@@ -325,23 +366,26 @@ function ParentCard({
                     {s.meals[0] ? (
                       <div className="psc-meals">
                         <div className="psc-meal-row">
-                          <span className="psc-meal-label">Plato Principal</span>
-                          <span className={`meal-badge ${mealColor[s.meals[0].mainCourse as MealLevel]}`}>
-                            {s.meals[0].mainCourse}
-                          </span>
+                          <span className="psc-meal-label">Menú:</span>
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>{s.meals[0].menuText || 'No especificado'}</span>
                         </div>
                         <div className="psc-meal-row">
-                          <span className="psc-meal-label">Ensalada</span>
-                          <span className={`meal-badge ${mealColor[s.meals[0].salad as MealLevel]}`}>
-                            {s.meals[0].salad}
+                          <span className="psc-meal-label">Consumo:</span>
+                          <span className={`meal-badge ${consumptionColor[s.meals[0].consumption || 'NADA']}`}>
+                            {s.meals[0].consumption || 'NADA'}
                           </span>
                         </div>
-                        <div className="psc-meal-row">
-                          <span className="psc-meal-label">Postre</span>
-                          <span className={`meal-badge ${mealColor[s.meals[0].dessert as MealLevel]}`}>
-                            {s.meals[0].dessert}
-                          </span>
-                        </div>
+                        {s.meals[0].observation && (
+                          <div className="psc-meal-row" style={{ marginTop: '4px', alignItems: 'flex-start' }}>
+                            <span className="psc-meal-label" style={{ flex: 1 }}>Obs:</span>
+                            <span style={{ flex: 3, fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic', textAlign: 'right' }}>{s.meals[0].observation}</span>
+                          </div>
+                        )}
+                        {s.meals[0].menuImage && (
+                          <div className="psc-meal-row" style={{ marginTop: '4px', justifyContent: 'flex-end' }}>
+                            <img src={s.meals[0].menuImage} alt="Plato" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.1)' }} />
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <p className="text-muted" style={{ fontSize: '0.85rem' }}>
@@ -646,7 +690,7 @@ export default function TeacherDashboard() {
 
   const studentsWithLowIntake = students.filter(s => {
     const m = s.meals[0];
-    return m && (m.mainCourse === 'NADA' || m.mainCourse === '1/4');
+    return m && (m.consumption === 'NADA' || m.consumption === 'POCO');
   });
 
   if (loading) return <div className="page-container">Cargando panel...</div>;
@@ -705,7 +749,7 @@ export default function TeacherDashboard() {
               <div className="alert-list">
                 {studentsWithLowIntake.map(s => (
                   <div key={s.id} className="alert-item">
-                    <span className="alert-badge">{s.meals[0].mainCourse}</span> {s.name}
+                    <span className="alert-badge">{s.meals[0].consumption}</span> {s.name}
                   </div>
                 ))}
               </div>
@@ -774,16 +818,17 @@ export default function TeacherDashboard() {
           <div className="data-table-wrapper glass-panel">
             <table className="data-table">
               <thead>
-                <tr><th>Fecha</th><th>Alumno</th><th>Plato</th><th>Ensalada</th><th>Postre</th></tr>
+                <tr><th>Fecha</th><th>Alumno</th><th>Menú</th><th>Foto</th><th>Consumo</th><th>Observación</th></tr>
               </thead>
               <tbody>
                 {historyRecords.map(r => (
                   <tr key={r.id}>
                     <td style={{ fontSize: '0.85rem' }}>{new Date(r.date).toLocaleDateString()}</td>
                     <td style={{ fontWeight: 500, fontSize: '0.9rem' }}>{r.student.name}</td>
-                    <td><span className={`meal-badge ${mealColor[r.mainCourse]}`}>{r.mainCourse}</span></td>
-                    <td><span className={`meal-badge ${mealColor[r.salad]}`}>{r.salad}</span></td>
-                    <td><span className={`meal-badge ${mealColor[r.dessert]}`}>{r.dessert}</span></td>
+                    <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{r.menuText || '-'}</td>
+                    <td>{r.menuImage ? <img src={r.menuImage} alt="Plato" style={{ width: '32px', height: '32px', objectFit: 'cover', borderRadius: '4px' }} /> : '-'}</td>
+                    <td><span className={`meal-badge ${consumptionColor[r.consumption || 'NADA']}`}>{r.consumption || 'NADA'}</span></td>
+                    <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.observation || ''}>{r.observation || '-'}</td>
                   </tr>
                 ))}
               </tbody>

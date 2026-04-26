@@ -84,9 +84,9 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { studentId, date, mainCourse, salad, dessert } = body;
+    const { studentId, date, menuText, menuImage, consumption, observation } = body;
 
-    if (!studentId || !mainCourse || !salad || !dessert) {
+    if (!studentId || !consumption) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -119,9 +119,10 @@ export async function POST(request: Request) {
       const updatedMeal = await prisma.mealRecord.update({
         where: { id: existingMeal.id },
         data: { 
-          mainCourse, 
-          salad, 
-          dessert,
+          menuText,
+          menuImage,
+          consumption,
+          observation,
           teacherId: session.id
         }
       });
@@ -133,9 +134,10 @@ export async function POST(request: Request) {
         studentId,
         teacherId: session.id,
         date: new Date(date),
-        mainCourse,
-        salad,
-        dessert
+        menuText,
+        menuImage,
+        consumption,
+        observation
       }
     });
 

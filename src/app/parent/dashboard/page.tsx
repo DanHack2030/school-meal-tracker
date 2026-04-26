@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import './parent.css';
 
-type MealLevel = 'NADA' | '1/4' | '1/2' | 'TODO';
+type ConsumptionLevel = 'NADA' | 'POCO' | 'TODO';
 
 interface UserInfo {
   id: string;
@@ -16,9 +16,14 @@ interface UserInfo {
 interface MealRecord {
   id: string;
   date: string;
-  mainCourse: MealLevel;
-  salad: MealLevel;
-  dessert: MealLevel;
+  menuText?: string | null;
+  menuImage?: string | null;
+  consumption?: ConsumptionLevel | string | null;
+  observation?: string | null;
+  // Legacy
+  mainCourse?: string;
+  salad?: string;
+  dessert?: string;
 }
 
 interface Student {
@@ -27,24 +32,26 @@ interface Student {
   medicalInfo?: string | null;
 }
 
-const levelToNumeric = (level: MealLevel) => {
+const levelToNumeric = (level?: string | null) => {
   switch (level) {
     case 'NADA': return 0;
-    case '1/4': return 25;
-    case '1/2': return 50;
+    case 'POCO': return 50;
+    case '1/4': return 25; // Legacy
+    case '1/2': return 50; // Legacy
     case 'TODO': return 100;
     default: return 0;
   }
 };
 
-const mealColor: Record<MealLevel, string> = {
+const consumptionColor: Record<string, string> = {
   'NADA': 'badge-none',
+  'POCO': 'badge-quarter',
   '1/4': 'badge-quarter',
   '1/2': 'badge-half',
   'TODO': 'badge-full',
 };
 
-const COLORS = ['#4ade80', '#facc15', '#fb923c', '#f87171']; // TODO, 1/2, 1/4, NADA
+const COLORS = ['#4ade80', '#facc15', '#f87171']; // TODO, POCO/1-2, NADA
 
 export default function ParentDashboard() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -114,29 +121,26 @@ export default function ParentDashboard() {
     d.setMinutes(d.getMinutes() + d.getTimezoneOffset()); // Fix weird day offsets
     return {
       date: `${d.getDate()}/${d.getMonth() + 1}`,
-      Principal: levelToNumeric(m.mainCourse),
-      Ensalada: levelToNumeric(m.salad),
-      Postre: levelToNumeric(m.dessert)
+      Consumo: levelToNumeric(m.consumption || m.mainCourse)
     };
   });
 
   // Pie Chart Data
   const pieData = [
     { name: 'Todo', value: 0 },
-    { name: 'La Mitad', value: 0 },
-    { name: 'Poco (1/4)', value: 0 },
+    { name: 'Poco/Mitad', value: 0 },
     { name: 'Nada', value: 0 }
   ];
   meals.forEach(m => {
-    if (m.mainCourse === 'TODO') pieData[0].value++;
-    else if (m.mainCourse === '1/2') pieData[1].value++;
-    else if (m.mainCourse === '1/4') pieData[2].value++;
-    else if (m.mainCourse === 'NADA') pieData[3].value++;
+    const val = m.consumption || m.mainCourse;
+    if (val === 'TODO') pieData[0].value++;
+    else if (val === 'POCO' || val === '1/2' || val === '1/4') pieData[1].value++;
+    else if (val === 'NADA') pieData[2].value++;
   });
   
   const activePieData = pieData.filter(d => d.value > 0);
 
-  const averageConsumption = meals.slice(0, 7).reduce((acc, m) => acc + levelToNumeric(m.mainCourse), 0) / (Math.min(meals.length, 7) || 1);
+  const averageConsumption = meals.slice(0, 7).reduce((acc, m) => acc + levelToNumeric(m.consumption || m.mainCourse), 0) / (Math.min(meals.length, 7) || 1);
 
   if (loading) return <div className="page-container">Cargando...</div>;
 
@@ -209,9 +213,7 @@ export default function ParentDashboard() {
                         formatter={(val) => [`${val}%`, '']}
                       />
                       <Legend wrapperStyle={{ fontSize: '13px', paddingTop: '20px' }} />
-                      <Line type="monotone" name="Principal" dataKey="Principal" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, strokeWidth: 0 }} activeDot={{ r: 6, fill: '#818cf8', stroke: 'white', strokeWidth: 2 }} />
-                      <Line type="monotone" name="Ensalada" dataKey="Ensalada" stroke="#10b981" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-                      <Line type="monotone" name="Postre" dataKey="Postre" stroke="#f59e0b" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                      <Line type="monotone" name="Consumo General" dataKey="Consumo" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, strokeWidth: 0 }} activeDot={{ r: 6, fill: '#818cf8', stroke: 'white', strokeWidth: 2 }} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -222,7 +224,7 @@ export default function ParentDashboard() {
 
             {/* Pie Chart */}
             <div className="glass-panel chart-panel">
-              <h3 className="section-title">Distribución Plato Principal (Histórico Total)</h3>
+              <h3 className="section-title">Distribución de Consumo (Histórico Total)</h3>
               {activePieData.length > 0 ? (
                 <div style={{ width: '100%', height: 300 }}>
                   <ResponsiveContainer>
@@ -268,18 +270,20 @@ export default function ParentDashboard() {
                     <thead>
                       <tr>
                         <th>Fecha</th>
-                        <th>Principal</th>
-                        <th>Ensalada</th>
-                        <th>Postre</th>
+                        <th>Menú</th>
+                        <th>Foto</th>
+                        <th>Consumo</th>
+                        <th>Observación</th>
                       </tr>
                     </thead>
                     <tbody>
                       {meals.slice(0, 10).map((m) => (
                         <tr key={m.id}>
                           <td>{new Date(m.date).toLocaleDateString('es-CL')}</td>
-                          <td><span className={`meal-badge ${mealColor[m.mainCourse]}`}>{m.mainCourse}</span></td>
-                          <td><span className={`meal-badge ${mealColor[m.salad]}`}>{m.salad}</span></td>
-                          <td><span className={`meal-badge ${mealColor[m.dessert]}`}>{m.dessert}</span></td>
+                          <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{m.menuText || '-'}</td>
+                          <td>{m.menuImage ? <img src={m.menuImage} alt="Plato" style={{ width: '32px', height: '32px', objectFit: 'cover', borderRadius: '4px' }} /> : '-'}</td>
+                          <td><span className={`meal-badge ${consumptionColor[m.consumption || m.mainCourse || 'NADA']}`}>{m.consumption || m.mainCourse || 'NADA'}</span></td>
+                          <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={m.observation || ''}>{m.observation || '-'}</td>
                         </tr>
                       ))}
                     </tbody>

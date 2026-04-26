@@ -45,7 +45,11 @@ model MealRecord {
   teacherId  String?
   teacher    User?    @relation("TeacherMeals", fields: [teacherId], references: [id])
   date       DateTime @default(now())
-  mainCourse String   // "NADA", "1/4", "1/2", "TODO"
-  salad      String   // "NADA", "1/4", "1/2", "TODO"
-  dessert    String   // "NADA", "1/4", "1/2", "TODO"
+  mainCourse   String?   // Legacy
+  salad        String?   // Legacy
+  dessert      String?   // Legacy
+  menuText     String?
+  menuImage    String?
+  consumption  String?   // "TODO", "POCO", "NADA"
+  observation  String?
 }
