@@ -12,9 +12,10 @@ const prisma = new PrismaClient({
 async function main() {
   const admin = await prisma.user.upsert({
     where: { username: 'admin' },
-    update: {},
+    update: { email: 'admin@colegio.cl' },
     create: {
       username: 'admin',
+      email: 'admin@colegio.cl',
       fullName: 'Administrador General',
       passwordHash: 'admin123',
       role: 'ADMIN',
