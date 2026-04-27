@@ -93,7 +93,6 @@ function StudentCard({
   onRefetch: () => void;
 }) {
   const existingMeal = student.meals[0];
-  const [menuText, setMenuText] = useState(existingMeal?.menuText || globalMenu || '');
   const [menuImage, setMenuImage] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState(existingMeal?.menuImage || '');
   const [consumption, setConsumption] = useState<ConsumptionLevel | string>(existingMeal?.consumption || 'NADA');
@@ -101,26 +100,13 @@ function StudentCard({
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-  const prevGlobalMenuRef = useRef(globalMenu);
-
-  useEffect(() => {
-    if (!existingMeal && globalMenu !== prevGlobalMenuRef.current) {
-      if (!menuText || menuText === prevGlobalMenuRef.current) {
-        setMenuText(globalMenu);
-      }
-      prevGlobalMenuRef.current = globalMenu;
-    }
-  }, [globalMenu, existingMeal, menuText]);
-
   // Update local state when existingMeal changes
   useEffect(() => {
     if (existingMeal) {
-      setMenuText(existingMeal.menuText || '');
       setPreviewImage(existingMeal.menuImage || '');
       setConsumption(existingMeal.consumption || 'NADA');
       setObservation(existingMeal.observation || '');
     } else {
-      setMenuText(globalMenu || '');
       setPreviewImage('');
       setConsumption('NADA');
       setObservation('');
@@ -159,7 +145,7 @@ function StudentCard({
         body: JSON.stringify({
           studentId: student.id,
           date: new Date().toLocaleDateString('en-CA'),
-          menuText,
+          menuText: existingMeal?.menuText || globalMenu || 'Menú General',
           menuImage: imageUrl,
           consumption,
           observation
@@ -235,10 +221,6 @@ function StudentCard({
       </div>
 
       <div className="selectors-container" style={{ gap: '1rem' }}>
-        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <span className="selector-label">Menú Consumido</span>
-          <input type="text" className="form-input" placeholder="Ej: Fideos con salsa" value={menuText} onChange={(e) => setMenuText(e.target.value)} disabled={loading} />
-        </div>
         <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <span className="selector-label">Foto del Plato (Opcional)</span>
           <input type="file" accept="image/*" onChange={handleImageChange} disabled={loading} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }} />
