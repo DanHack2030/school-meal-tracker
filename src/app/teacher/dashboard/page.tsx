@@ -60,6 +60,7 @@ interface HistoryRecord {
   menuText?: string | null;
   menuImage?: string | null;
   consumption?: ConsumptionLevel | string | null;
+  mainCourse?: string | null;
   observation?: string | null;
   student: { id: string; name: string };
   teacher: { username: string; fullName: string | null };
@@ -851,7 +852,7 @@ export default function TeacherDashboard() {
                     <td style={{ fontWeight: 500, fontSize: '0.9rem' }}>{r.student.name}</td>
                     <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{r.menuText || '-'}</td>
                     <td>{r.menuImage ? <img src={r.menuImage} alt="Plato" style={{ width: '32px', height: '32px', objectFit: 'cover', borderRadius: '4px' }} /> : '-'}</td>
-                    <td><span className={`meal-badge ${consumptionColor[r.consumption || 'NADA']}`}>{r.consumption || 'NADA'}</span></td>
+                    <td><span className={`meal-badge ${consumptionColor[r.consumption || r.mainCourse || 'NADA']}`}>{r.consumption || r.mainCourse || 'NADA'}</span></td>
                     <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.observation || ''}>{r.observation || '-'}</td>
                   </tr>
                 ))}

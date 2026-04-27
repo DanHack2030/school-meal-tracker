@@ -17,11 +17,11 @@ export async function GET(request: Request) {
     // Build date filter
     const dateFilter: { gte?: Date; lte?: Date } = {};
     if (from) {
-      const d = new Date(`${from}T00:00:00`);
+      const d = new Date(`${from}T00:00:00.000-04:00`);
       dateFilter.gte = d;
     }
     if (to) {
-      const d = new Date(`${to}T23:59:59.999`);
+      const d = new Date(`${to}T23:59:59.999-04:00`);
       dateFilter.lte = d;
     }
 
@@ -98,11 +98,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized or student not found' }, { status: 403 });
     }
 
-    // Check if meal record already exists for today
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
+    // Use the client's local date string if provided (YYYY-MM-DD), or fallback to ISO substring
+    const dateString = date.length === 10 ? date : new Date(date).toLocaleDateString('en-CA', { timeZone: 'America/Santiago' });
+    const startOfDay = new Date(`${dateString}T00:00:00.000-04:00`);
+    const endOfDay = new Date(`${dateString}T23:59:59.999-04:00`);
 
     const existingMeal = await prisma.mealRecord.findFirst({
       where: {
@@ -133,7 +132,7 @@ export async function POST(request: Request) {
       data: {
         studentId,
         teacherId: session.id,
-        date: new Date(date),
+        date: new Date(), // Always save current absolute time
         menuText,
         menuImage,
         consumption,
