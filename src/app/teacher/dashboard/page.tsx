@@ -81,11 +81,13 @@ const consumptionColor: Record<string, string> = {
 function StudentCard({
   student,
   parentName,
+  dailyMenus,
   onEditProfile,
-  onRefetch, // Added refetch callback
+  onRefetch,
 }: {
   student: Student;
   parentName?: string;
+  dailyMenus: {optionNumber: number, menuText: string}[];
   onEditProfile: (s: Student) => void;
   onRefetch: () => void;
 }) {
@@ -223,7 +225,16 @@ function StudentCard({
       <div className="selectors-container" style={{ gap: '1rem' }}>
         <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <span className="selector-label">Menú Consumido</span>
-          <input type="text" className="form-input" placeholder="Ej: Fideos con salsa" value={menuText} onChange={(e) => setMenuText(e.target.value)} disabled={loading} />
+          {dailyMenus.length === 0 ? (
+            <input type="text" className="form-input" placeholder="Ej: Fideos con salsa" value={menuText} onChange={(e) => setMenuText(e.target.value)} disabled={loading} />
+          ) : (
+            <select className="form-input" value={menuText} onChange={(e) => setMenuText(e.target.value)} disabled={loading}>
+              <option value="">Seleccione el menú...</option>
+              {dailyMenus.map(m => (
+                <option key={m.optionNumber} value={m.menuText}>Opción {m.optionNumber}: {m.menuText}</option>
+              ))}
+            </select>
+          )}
         </div>
         <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <span className="selector-label">Foto del Plato (Opcional)</span>
@@ -410,6 +421,7 @@ export default function TeacherDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('registros');
   const [students, setStudents] = useState<Student[]>([]);
   const [parents, setParents] = useState<Parent[]>([]);
+  const [dailyMenus, setDailyMenus] = useState<{optionNumber: number, menuText: string}[]>([]);
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
   const [selectedCourse, setSelectedCourse] = useState('');
   const [loading, setLoading] = useState(true);
@@ -484,11 +496,23 @@ export default function TeacherDashboard() {
     } catch (err) { console.error(err); }
   }, []);
 
+  const fetchDailyMenus = useCallback(async () => {
+    try {
+      const today = new Date();
+      const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const res = await fetch(`/api/daily-menus?dateString=${dateString}`);
+      if (res.ok) {
+        setDailyMenus(await res.json());
+      }
+    } catch (err) { console.error(err); }
+  }, []);
+
   useEffect(() => {
     fetchMe();
     fetchStudents();
     fetchParents();
-  }, [fetchMe, fetchStudents, fetchParents]);
+    fetchDailyMenus();
+  }, [fetchMe, fetchStudents, fetchParents, fetchDailyMenus]);
 
   const fetchHistory = useCallback(async () => {
     setHistoryLoading(true);
@@ -761,7 +785,7 @@ export default function TeacherDashboard() {
               <div className="empty-state glass-panel"><p>No se encontraron estudiantes con este filtro.</p></div>
             ) : (
               filteredStudents.map(s => (
-                <StudentCard key={s.id} student={s} parentName={getParentName(s.parentId)} onEditProfile={openEditStudentModal} onRefetch={() => { fetchStudents(); fetchParents(); }} />
+                <StudentCard key={s.id} student={s} parentName={getParentName(s.parentId)} dailyMenus={dailyMenus} onEditProfile={openEditStudentModal} onRefetch={() => { fetchStudents(); fetchParents(); }} />
               ))
             )}
           </div>
