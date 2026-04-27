@@ -685,10 +685,7 @@ export default function TeacherDashboard() {
     return parents.find((p) => p.id === parentId)?.username;
   };
 
-  const studentsWithLowIntake = students.filter(s => {
-    const m = s.meals[0];
-    return m && (m.consumption === 'NADA' || m.consumption === 'POCO');
-  });
+
 
   if (loading) return <div className="page-container">Cargando panel...</div>;
 
@@ -756,19 +753,6 @@ export default function TeacherDashboard() {
               style={{ maxWidth: '400px' }}
             />
           </div>
-
-          {studentsWithLowIntake.length > 0 && !selectedCourse && (
-            <div className="alerts-container">
-              <div className="alert-title">⚠️ Baja Alimentación</div>
-              <div className="alert-list">
-                {studentsWithLowIntake.map(s => (
-                  <div key={s.id} className="alert-item">
-                    <span className="alert-badge">{s.meals[0].consumption}</span> {s.name}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           <div className="students-grid">
             {filteredStudents.length === 0 ? (

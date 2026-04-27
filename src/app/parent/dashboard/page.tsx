@@ -142,6 +142,9 @@ export default function ParentDashboard() {
 
   const averageConsumption = meals.slice(0, 7).reduce((acc, m) => acc + levelToNumeric(m.consumption || m.mainCourse), 0) / (Math.min(meals.length, 7) || 1);
 
+  const latestMeal = meals[0];
+  const hasLowIntake = latestMeal && (latestMeal.consumption === 'NADA' || latestMeal.consumption === 'POCO' || latestMeal.mainCourse === 'NADA' || latestMeal.mainCourse === '1/4' || latestMeal.mainCourse === '1/2');
+
   if (loading) return <div className="page-container">Cargando...</div>;
 
   return (
@@ -195,6 +198,16 @@ export default function ParentDashboard() {
               </div>
             )}
           </div>
+
+          {hasLowIntake && (
+            <div className="alerts-container" style={{ marginBottom: '2rem' }}>
+              <div className="alert-title">⚠️ Alerta Nutricional</div>
+              <div className="alert-item" style={{ marginTop: '0.5rem' }}>
+                <span className="alert-badge">{latestMeal.consumption || latestMeal.mainCourse}</span> 
+                {selectedStudent?.name} ha registrado bajo consumo en su última comida ({new Date(latestMeal.date).toLocaleDateString()}).
+              </div>
+            </div>
+          )}
 
           <div className="charts-grid">
             {/* Trend Chart */}
