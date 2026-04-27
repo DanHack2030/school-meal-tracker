@@ -10,26 +10,17 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' });
+    const startOfDay = new Date(`${todayStr}T00:00:00.000-04:00`);
+    const endOfDay = new Date(`${todayStr}T23:59:59.999-04:00`);
 
-    const user = await prisma.user.findUnique({ where: { id: session.id } });
-    let studentsWhere: any = {};
-    if (user?.course) {
-      studentsWhere = { course: user.course };
-    } else {
-      studentsWhere = { teacherId: session.id };
-    }
+    // Teachers can now see all parents and their students
+    const studentsWhere = {}; 
+    const parentsWhere = { role: 'PARENT' };
 
     const parents = await prisma.user.findMany({
       where: { 
-        role: 'PARENT',
-        OR: [
-          { parentOf: { some: studentsWhere } },
-          { parentOf: { none: {} } }
-        ]
+        role: 'PARENT'
       },
       select: {
         id: true,
