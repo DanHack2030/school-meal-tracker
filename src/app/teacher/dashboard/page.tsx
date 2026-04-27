@@ -481,6 +481,13 @@ export default function TeacherDashboard() {
     fetchParents();
   }, [fetchMe, fetchStudents, fetchParents]);
 
+  const filteredParents = useMemo(() => {
+    if (!selectedCourse) return parents;
+    return parents.filter(p => 
+      p.parentOf.some(s => s.course === selectedCourse || s.teacher?.course === selectedCourse)
+    );
+  }, [parents, selectedCourse]);
+
   const fetchHistory = useCallback(async () => {
     setHistoryLoading(true);
     try {
@@ -821,11 +828,11 @@ export default function TeacherDashboard() {
 
       {activeTab === 'apoderados' && (
         <div className="tab-content">
-          {parents.length === 0 ? (
-            <div className="empty-state glass-panel"><p>No hay apoderados.</p></div>
+          {filteredParents.length === 0 ? (
+            <div className="empty-state glass-panel"><p>No se encontraron apoderados para este curso.</p></div>
           ) : (
             <div className="parents-list">
-              {parents.map(p => (
+              {filteredParents.map(p => (
                 <ParentCard 
                   key={p.id} 
                   parent={p} 
