@@ -53,12 +53,3 @@ model MealRecord {
   consumption  String?   // "TODO", "POCO", "NADA"
   observation  String?
 }
-
-model DailyMenu {
-  id          String   @id @default(uuid())
-  dateString  String   // "YYYY-MM-DD"
-  optionNumber Int     // 1, 2, or 3
-  menuText    String
-
-  @@unique([dateString, optionNumber])
-}

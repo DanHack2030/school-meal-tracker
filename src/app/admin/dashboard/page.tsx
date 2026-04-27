@@ -67,29 +67,6 @@ export default function AdminDashboard() {
   const [editIsActive, setEditIsActive] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Daily Menus State
-  const [menu1, setMenu1] = useState('');
-  const [menu2, setMenu2] = useState('');
-  const [menu3, setMenu3] = useState('');
-  const [savingMenus, setSavingMenus] = useState(false);
-
-  const fetchDailyMenus = useCallback(async () => {
-    try {
-      const today = new Date();
-      const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      const res = await fetch(`/api/daily-menus?dateString=${dateString}`);
-      if (res.ok) {
-        const data = await res.json();
-        const m1 = data.find((d: any) => d.optionNumber === 1);
-        const m2 = data.find((d: any) => d.optionNumber === 2);
-        const m3 = data.find((d: any) => d.optionNumber === 3);
-        if (m1) setMenu1(m1.menuText);
-        if (m2) setMenu2(m2.menuText);
-        if (m3) setMenu3(m3.menuText);
-      }
-    } catch (err) { console.error(err); }
-  }, []);
-
   const fetchTeachers = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/teachers');
@@ -109,43 +86,12 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchTeachers();
-    fetchDailyMenus();
-  }, [fetchTeachers, fetchDailyMenus]);
+  }, [fetchTeachers]);
 
   const handleLogout = () => {
     document.cookie = 'userId=; Max-Age=0; path=/;';
     document.cookie = 'userRole=; Max-Age=0; path=/;';
     router.push('/login');
-  };
-
-  const handleSaveDailyMenus = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSavingMenus(true);
-    try {
-      const today = new Date();
-      const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      
-      const saveMenu = async (opt: number, text: string) => {
-        if (!text.trim()) return;
-        await fetch('/api/daily-menus', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ dateString, optionNumber: opt, menuText: text })
-        });
-      };
-      
-      await Promise.all([
-        saveMenu(1, menu1),
-        saveMenu(2, menu2),
-        saveMenu(3, menu3)
-      ]);
-      
-      alert('Menús del día guardados correctamente.');
-    } catch (err) {
-      alert('Error al guardar menús.');
-    } finally {
-      setSavingMenus(false);
-    }
   };
 
   const handleAddTeacher = async (e: React.FormEvent) => {
@@ -296,30 +242,6 @@ export default function AdminDashboard() {
       </div>
 
       <div className="admin-content">
-        {/* Daily Menus Section */}
-        <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem' }}>
-          <h2 className="section-title" style={{ fontSize: '1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span style={{ color: '#f59e0b', fontSize: '1.5rem' }}>🍽️</span> Menús del Día (Global)
-          </h2>
-          <form onSubmit={handleSaveDailyMenus} className="admin-form" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-            <div className="form-group flex-1" style={{ marginBottom: 0, minWidth: '200px' }}>
-              <label className="label">Opción 1</label>
-              <input type="text" className="form-input" value={menu1} onChange={e => setMenu1(e.target.value)} placeholder="Ej: Pollo con arroz" />
-            </div>
-            <div className="form-group flex-1" style={{ marginBottom: 0, minWidth: '200px' }}>
-              <label className="label">Opción 2</label>
-              <input type="text" className="form-input" value={menu2} onChange={e => setMenu2(e.target.value)} placeholder="Ej: Fideos con salsa" />
-            </div>
-            <div className="form-group flex-1" style={{ marginBottom: 0, minWidth: '200px' }}>
-              <label className="label">Opción 3 (Dieta/Extra)</label>
-              <input type="text" className="form-input" value={menu3} onChange={e => setMenu3(e.target.value)} placeholder="Ej: Pescado al horno" />
-            </div>
-            <button type="submit" className="btn-primary" disabled={savingMenus} style={{ padding: '0.75rem 2rem', fontWeight: 600, height: '42px' }}>
-              {savingMenus ? 'Guardando...' : 'Guardar Menús'}
-            </button>
-          </form>
-        </div>
-
         {/* Registration Section */}
         <div className="glass-panel" style={{ padding: '2rem' }}>
           <h2 className="section-title" style={{ fontSize: '1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

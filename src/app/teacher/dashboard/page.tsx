@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import './teacher.css';
 
@@ -82,24 +82,35 @@ const consumptionColor: Record<string, string> = {
 function StudentCard({
   student,
   parentName,
-  dailyMenus,
+  globalMenu,
   onEditProfile,
   onRefetch,
 }: {
   student: Student;
   parentName?: string;
-  dailyMenus: {optionNumber: number, menuText: string}[];
+  globalMenu: string;
   onEditProfile: (s: Student) => void;
   onRefetch: () => void;
 }) {
   const existingMeal = student.meals[0];
-  const [menuText, setMenuText] = useState(existingMeal?.menuText || '');
+  const [menuText, setMenuText] = useState(existingMeal?.menuText || globalMenu || '');
   const [menuImage, setMenuImage] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState(existingMeal?.menuImage || '');
   const [consumption, setConsumption] = useState<ConsumptionLevel | string>(existingMeal?.consumption || 'NADA');
   const [observation, setObservation] = useState(existingMeal?.observation || '');
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const prevGlobalMenuRef = useRef(globalMenu);
+
+  useEffect(() => {
+    if (!existingMeal && globalMenu !== prevGlobalMenuRef.current) {
+      if (!menuText || menuText === prevGlobalMenuRef.current) {
+        setMenuText(globalMenu);
+      }
+      prevGlobalMenuRef.current = globalMenu;
+    }
+  }, [globalMenu, existingMeal, menuText]);
 
   // Update local state when existingMeal changes
   useEffect(() => {
@@ -109,7 +120,7 @@ function StudentCard({
       setConsumption(existingMeal.consumption || 'NADA');
       setObservation(existingMeal.observation || '');
     } else {
-      setMenuText('');
+      setMenuText(globalMenu || '');
       setPreviewImage('');
       setConsumption('NADA');
       setObservation('');
@@ -147,7 +158,7 @@ function StudentCard({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           studentId: student.id,
-          date: new Date().toISOString(),
+          date: new Date().toLocaleDateString('en-CA'),
           menuText,
           menuImage: imageUrl,
           consumption,
@@ -226,16 +237,7 @@ function StudentCard({
       <div className="selectors-container" style={{ gap: '1rem' }}>
         <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <span className="selector-label">Menú Consumido</span>
-          {dailyMenus.length === 0 ? (
-            <input type="text" className="form-input" placeholder="Ej: Fideos con salsa" value={menuText} onChange={(e) => setMenuText(e.target.value)} disabled={loading} />
-          ) : (
-            <select className="form-input" value={menuText} onChange={(e) => setMenuText(e.target.value)} disabled={loading}>
-              <option value="">Seleccione el menú...</option>
-              {dailyMenus.map(m => (
-                <option key={m.optionNumber} value={m.menuText}>Opción {m.optionNumber}: {m.menuText}</option>
-              ))}
-            </select>
-          )}
+          <input type="text" className="form-input" placeholder="Ej: Fideos con salsa" value={menuText} onChange={(e) => setMenuText(e.target.value)} disabled={loading} />
         </div>
         <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <span className="selector-label">Foto del Plato (Opcional)</span>
@@ -422,7 +424,7 @@ export default function TeacherDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('registros');
   const [students, setStudents] = useState<Student[]>([]);
   const [parents, setParents] = useState<Parent[]>([]);
-  const [dailyMenus, setDailyMenus] = useState<{optionNumber: number, menuText: string}[]>([]);
+  const [globalMenu, setGlobalMenu] = useState('');
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
   const [selectedCourse, setSelectedCourse] = useState('');
   const [loading, setLoading] = useState(true);
@@ -497,23 +499,11 @@ export default function TeacherDashboard() {
     } catch (err) { console.error(err); }
   }, []);
 
-  const fetchDailyMenus = useCallback(async () => {
-    try {
-      const today = new Date();
-      const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      const res = await fetch(`/api/daily-menus?dateString=${dateString}`);
-      if (res.ok) {
-        setDailyMenus(await res.json());
-      }
-    } catch (err) { console.error(err); }
-  }, []);
-
   useEffect(() => {
     fetchMe();
     fetchStudents();
     fetchParents();
-    fetchDailyMenus();
-  }, [fetchMe, fetchStudents, fetchParents, fetchDailyMenus]);
+  }, [fetchMe, fetchStudents, fetchParents]);
 
   const fetchHistory = useCallback(async () => {
     setHistoryLoading(true);
@@ -768,6 +758,23 @@ export default function TeacherDashboard() {
 
       {activeTab === 'registros' && (
         <>
+          <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <h2 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#fcd34d' }}>
+              <span style={{ fontSize: '1.4rem' }}>🍲</span> Menú Principal del Día
+            </h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+              Lo que escribas aquí se pre-cargará automáticamente en todos tus alumnos para agilizar tu registro.
+            </p>
+            <input 
+              type="text" 
+              className="form-input" 
+              placeholder="Ej: Lentejas con ensalada..." 
+              value={globalMenu}
+              onChange={e => setGlobalMenu(e.target.value)}
+              style={{ maxWidth: '400px' }}
+            />
+          </div>
+
           {studentsWithLowIntake.length > 0 && !selectedCourse && (
             <div className="alerts-container">
               <div className="alert-title">⚠️ Baja Alimentación</div>
@@ -786,7 +793,7 @@ export default function TeacherDashboard() {
               <div className="empty-state glass-panel"><p>No se encontraron estudiantes con este filtro.</p></div>
             ) : (
               filteredStudents.map(s => (
-                <StudentCard key={s.id} student={s} parentName={getParentName(s.parentId)} dailyMenus={dailyMenus} onEditProfile={openEditStudentModal} onRefetch={() => { fetchStudents(); fetchParents(); }} />
+                <StudentCard key={s.id} student={s} parentName={getParentName(s.parentId)} globalMenu={globalMenu} onEditProfile={openEditStudentModal} onRefetch={() => { fetchStudents(); fetchParents(); }} />
               ))
             )}
           </div>
