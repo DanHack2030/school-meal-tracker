@@ -11,6 +11,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get('studentId');
+    const course = searchParams.get('course');
     const from = searchParams.get('from');
     const to = searchParams.get('to');
 
@@ -30,29 +31,22 @@ export async function GET(request: Request) {
     if (studentId) {
       studentFilter.id = studentId;
     } else if (session.role === 'TEACHER') {
-      const user = await prisma.user.findUnique({ where: { id: session.id } });
-      if (user?.course) {
-        studentFilter = { course: user.course };
-      } else {
-        studentFilter = { teacherId: session.id };
+      if (course) {
+        studentFilter.course = course;
       }
+      // No default restriction for teachers anymore
     } else {
       studentFilter.parentId = session.id;
     }
 
     // Verify authorization for single student queries
     if (studentId) {
-      const student = await prisma.student.findUnique({ where: { id: studentId }, include: { teacher: true }});
+      const student = await prisma.student.findUnique({ where: { id: studentId } });
       if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 });
-      if (session.role === 'TEACHER') {
-        const user = await prisma.user.findUnique({ where: { id: session.id } });
-        const matchesCourse = user?.course && (student.course === user.course || student.teacher?.course === user.course);
-        if (student.teacherId !== session.id && !matchesCourse) {
-          return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-        }
-      } else if (session.role === 'PARENT' && student.parentId !== session.id) {
+      if (session.role === 'PARENT' && student.parentId !== session.id) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
       }
+      // Teachers can now see any student
     }
 
     const meals = await prisma.mealRecord.findMany({
@@ -90,13 +84,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const student = await prisma.student.findUnique({ where: { id: studentId }, include: { teacher: true } });
-    const user = await prisma.user.findUnique({ where: { id: session.id } });
-    const matchesCourse = user?.course && (student?.course === user.course || student?.teacher?.course === user.course);
-
-    if (!student || (student.teacherId !== session.id && !matchesCourse)) {
-      return NextResponse.json({ error: 'Unauthorized or student not found' }, { status: 403 });
+    const student = await prisma.student.findUnique({ where: { id: studentId } });
+    if (!student) {
+      return NextResponse.json({ error: 'Student not found' }, { status: 404 });
     }
+    // Teachers can now update any student record
 
     // Use the client's local date string if provided (YYYY-MM-DD), or fallback to ISO substring
     const dateString = date.length === 10 ? date : new Date(date).toLocaleDateString('en-CA', { timeZone: 'America/Santiago' });

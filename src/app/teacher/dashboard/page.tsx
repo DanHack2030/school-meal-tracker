@@ -482,11 +482,12 @@ export default function TeacherDashboard() {
     try {
       const params = new URLSearchParams({ from: filterFrom, to: filterTo });
       if (filterStudent) params.append('studentId', filterStudent);
+      if (selectedCourse) params.append('course', selectedCourse);
       const res = await fetch(`/api/meals?${params}`);
       if (res.ok) setHistoryRecords(await res.json());
     } catch (err) { console.error(err); }
     finally { setHistoryLoading(false); }
-  }, [filterFrom, filterTo, filterStudent]);
+  }, [filterFrom, filterTo, filterStudent, selectedCourse]);
 
   useEffect(() => {
     if (activeTab === 'historial' && mounted) fetchHistory();
@@ -855,7 +856,9 @@ export default function TeacherDashboard() {
               <label className="filter-label" style={{ fontSize: '0.75rem' }}>Alumno</label>
               <select className="form-input" value={filterStudent} onChange={(e) => setFilterStudent(e.target.value)}>
                 <option value="">Todos</option>
-                {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                {students
+                  .filter(s => !selectedCourse || s.course === selectedCourse)
+                  .map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
