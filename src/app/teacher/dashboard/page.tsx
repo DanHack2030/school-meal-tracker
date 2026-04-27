@@ -675,6 +675,11 @@ export default function TeacherDashboard() {
   const handleGlobalImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      
+      // Instant local preview
+      const localUrl = URL.createObjectURL(file);
+      setGlobalMenuImage(localUrl);
+      
       setGlobalMenuImageUploading(true);
       const formData = new FormData();
       formData.append('file', file);

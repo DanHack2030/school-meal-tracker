@@ -17,11 +17,8 @@ export async function GET() {
     const user = await prisma.user.findUnique({ where: { id: session.id } });
     let whereClause: any = {};
     if (session.role === 'TEACHER') {
-      if (user?.course) {
-        whereClause = { course: user.course };
-      } else {
-        whereClause = { teacherId: session.id };
-      }
+      // Teachers can now see all students/courses
+      whereClause = {};
     } else {
       whereClause = { parentId: session.id };
     }

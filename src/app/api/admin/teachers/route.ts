@@ -48,8 +48,8 @@ export async function POST(request: Request) {
     }
 
     const { fullName, course, email } = await request.json();
-    if (!fullName || !course || !email) {
-      return NextResponse.json({ error: 'Nombre completo, curso y correo son requeridos' }, { status: 400 });
+    if (!fullName || !email) {
+      return NextResponse.json({ error: 'Nombre completo y correo son requeridos' }, { status: 400 });
     }
 
     if (email) {
