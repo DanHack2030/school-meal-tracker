@@ -725,28 +725,35 @@ export default function TeacherDashboard() {
         </div>
         
         <div style={{ flex: 1, textAlign: 'center', display: 'flex', justifyContent: 'center' }}>
-          {(courses.length > 0) && (
-           <h2 style={{ fontSize: '1.45rem', color: '#c7d2fe', margin: 0, fontWeight: 800, letterSpacing: '0.03em', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(99, 102, 241, 0.05))', padding: '0.5rem 1.75rem', borderRadius: '2rem', border: '1px solid rgba(99, 102, 241, 0.4)', ...({ boxShadow: '0 4px 12px rgba(99, 102, 241, 0.15)' } as any) }}>
-             {selectedCourse ? selectedCourse : (courses.length === 1 ? courses[0] : 'Varios Cursos')}
-           </h2>
-          )}
+          <select 
+            className="course-badge-select"
+            value={selectedCourse} 
+            onChange={(e) => setSelectedCourse(e.target.value)}
+            style={{
+              fontSize: '1.45rem',
+              color: '#c7d2fe',
+              margin: 0,
+              fontWeight: 800,
+              letterSpacing: '0.03em',
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(99, 102, 241, 0.05))',
+              padding: '0.5rem 1.75rem',
+              borderRadius: '2rem',
+              border: '1px solid rgba(99, 102, 241, 0.4)',
+              cursor: 'pointer',
+              outline: 'none',
+              textAlignLast: 'center',
+              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.15)',
+              fontFamily: 'inherit'
+            }}
+          >
+            <option value="" style={{ background: '#0f172a' }}>Varios Cursos</option>
+            {COURSE_OPTIONS.map(c => (
+              <option key={c} value={c} style={{ background: '#0f172a' }}>{c}</option>
+            ))}
+          </select>
         </div>
 
         <div className="header-actions" style={{ flex: 1, justifyContent: 'flex-end' }}>
-          {(activeTab === 'registros' || activeTab === 'apoderados') && (
-            <div className="global-filter">
-              <label htmlFor="course-select">Curso:</label>
-              <select 
-                id="course-select" 
-                className="form-input filter-select" 
-                value={selectedCourse} 
-                onChange={(e) => setSelectedCourse(e.target.value)}
-              >
-                <option value="">Cualquier curso</option>
-                {COURSE_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-          )}
           {activeTab !== 'historial' && (
             <button onClick={openNewParentModal} className="btn-primary" style={{ marginRight: '0.5rem' }}>
               + Nuevo Ingreso
