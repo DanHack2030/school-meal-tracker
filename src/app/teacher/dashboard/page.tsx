@@ -145,7 +145,7 @@ function StudentCard({
         body: JSON.stringify({
           studentId: student.id,
           date: new Date().toLocaleDateString('en-CA'),
-          menuText: existingMeal?.menuText || globalMenu || 'Menú General',
+          menuText: globalMenu || existingMeal?.menuText || 'Menú General',
           menuImage: imageUrl,
           consumption,
           observation

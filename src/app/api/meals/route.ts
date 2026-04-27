@@ -110,7 +110,8 @@ export async function POST(request: Request) {
           gte: startOfDay,
           lte: endOfDay
         }
-      }
+      },
+      orderBy: { date: 'desc' }
     });
 
     if (existingMeal) {
