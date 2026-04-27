@@ -84,18 +84,18 @@ function StudentCard({
   student,
   parentName,
   globalMenu,
+  globalMenuImage,
   onEditProfile,
   onRefetch,
 }: {
   student: Student;
   parentName?: string;
   globalMenu: string;
+  globalMenuImage: string;
   onEditProfile: (s: Student) => void;
   onRefetch: () => void;
 }) {
   const existingMeal = student.meals[0];
-  const [menuImage, setMenuImage] = useState<File | null>(null);
-  const [previewImage, setPreviewImage] = useState(existingMeal?.menuImage || '');
   const [consumption, setConsumption] = useState<ConsumptionLevel | string>(existingMeal?.consumption || 'NADA');
   const [observation, setObservation] = useState(existingMeal?.observation || '');
   const [loading, setLoading] = useState(false);
@@ -104,42 +104,18 @@ function StudentCard({
   // Update local state when existingMeal changes
   useEffect(() => {
     if (existingMeal) {
-      setPreviewImage(existingMeal.menuImage || '');
       setConsumption(existingMeal.consumption || 'NADA');
       setObservation(existingMeal.observation || '');
     } else {
-      setPreviewImage('');
       setConsumption('NADA');
       setObservation('');
     }
   }, [existingMeal]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setMenuImage(file);
-      setPreviewImage(URL.createObjectURL(file));
-    }
-  };
-
   const handleSave = async () => {
     setLoading(true);
     setSaveStatus('idle');
     try {
-      let imageUrl = previewImage;
-      if (menuImage) {
-        const formData = new FormData();
-        formData.append('file', menuImage);
-        const uploadRes = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
-        if (uploadRes.ok) {
-          const { url } = await uploadRes.json();
-          imageUrl = url;
-        }
-      }
-
       const res = await fetch('/api/meals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -147,7 +123,7 @@ function StudentCard({
           studentId: student.id,
           date: new Date().toLocaleDateString('en-CA'),
           menuText: globalMenu || existingMeal?.menuText || 'Menú General',
-          menuImage: imageUrl,
+          menuImage: globalMenuImage || existingMeal?.menuImage || null,
           consumption,
           observation
         }),
@@ -222,11 +198,6 @@ function StudentCard({
       </div>
 
       <div className="selectors-container" style={{ gap: '1rem' }}>
-        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <span className="selector-label">Foto del Plato (Opcional)</span>
-          <input type="file" accept="image/*" onChange={handleImageChange} disabled={loading} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }} />
-          {previewImage && <img src={previewImage} alt="Preview" style={{ marginTop: '0.5rem', maxHeight: '100px', objectFit: 'cover', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />}
-        </div>
         {renderConsumptionSelector()}
         <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <span className="selector-label">Observación</span>
@@ -408,6 +379,8 @@ export default function TeacherDashboard() {
   const [students, setStudents] = useState<Student[]>([]);
   const [parents, setParents] = useState<Parent[]>([]);
   const [globalMenu, setGlobalMenu] = useState('');
+  const [globalMenuImage, setGlobalMenuImage] = useState('');
+  const [globalMenuImageUploading, setGlobalMenuImageUploading] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
   const [selectedCourse, setSelectedCourse] = useState('');
   const [loading, setLoading] = useState(true);
@@ -699,7 +672,25 @@ export default function TeacherDashboard() {
     return parents.find((p) => p.id === parentId)?.username;
   };
 
-
+  const handleGlobalImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setGlobalMenuImageUploading(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          setGlobalMenuImage(uploadData.url);
+        }
+      } catch (err) {
+        console.error("Error uploading global image", err);
+      } finally {
+        setGlobalMenuImageUploading(false);
+      }
+    }
+  };
 
   if (loading) return <div className="page-container">Cargando panel...</div>;
 
@@ -756,16 +747,30 @@ export default function TeacherDashboard() {
               <span style={{ fontSize: '1.4rem' }}>🍲</span> Menú Principal del Día
             </h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-              Lo que escribas aquí se pre-cargará automáticamente en todos tus alumnos para agilizar tu registro.
+              Lo que escribas o subas aquí se pre-cargará automáticamente en todos tus alumnos para agilizar tu registro.
             </p>
-            <input 
-              type="text" 
-              className="form-input" 
-              placeholder="Ej: Lentejas con ensalada..." 
-              value={globalMenu}
-              onChange={e => setGlobalMenu(e.target.value)}
-              style={{ maxWidth: '400px' }}
-            />
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="Ej: Lentejas con ensalada..." 
+                value={globalMenu}
+                onChange={e => setGlobalMenu(e.target.value)}
+                style={{ flex: 1, minWidth: '200px' }}
+              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <label className="btn-outline" style={{ cursor: 'pointer', margin: 0 }}>
+                  {globalMenuImageUploading ? 'Subiendo...' : '📷 Subir Foto del Plato'}
+                  <input type="file" accept="image/*" onChange={handleGlobalImageChange} style={{ display: 'none' }} disabled={globalMenuImageUploading} />
+                </label>
+              </div>
+            </div>
+            {globalMenuImage && (
+              <div style={{ marginTop: '0.5rem' }}>
+                <img src={globalMenuImage} alt="Preview General" style={{ maxHeight: '150px', objectFit: 'cover', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
+                <button className="btn-outline" style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.8rem', padding: '0.25rem 0.5rem', color: '#fca5a5', borderColor: 'rgba(239, 68, 68, 0.3)' }} onClick={() => setGlobalMenuImage('')}>Quitar Foto</button>
+              </div>
+            )}
           </div>
 
           <div className="students-grid">
@@ -773,7 +778,7 @@ export default function TeacherDashboard() {
               <div className="empty-state glass-panel"><p>No se encontraron estudiantes con este filtro.</p></div>
             ) : (
               filteredStudents.map(s => (
-                <StudentCard key={s.id} student={s} parentName={getParentName(s.parentId)} globalMenu={globalMenu} onEditProfile={openEditStudentModal} onRefetch={() => { fetchStudents(); fetchParents(); }} />
+                <StudentCard key={s.id} student={s} parentName={getParentName(s.parentId)} globalMenu={globalMenu} globalMenuImage={globalMenuImage} onEditProfile={openEditStudentModal} onRefetch={() => { fetchStudents(); fetchParents(); }} />
               ))
             )}
           </div>
