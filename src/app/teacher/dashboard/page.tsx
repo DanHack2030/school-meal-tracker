@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { exportToCSV } from '@/lib/export';
 import './teacher.css';
 
 type ConsumptionLevel = 'NADA' | 'POCO' | 'TODO';
@@ -680,6 +681,19 @@ export default function TeacherDashboard() {
     finally { setDeletingParentId(null); }
   };
 
+  const handleExportHistory = () => {
+    if (historyRecords.length === 0) return;
+    const headers = ['Fecha', 'Alumno', 'Menú', 'Consumo', 'Observación'];
+    const rows = historyRecords.map(r => [
+      new Date(r.date).toLocaleDateString(),
+      r.student.name,
+      r.menuText || '-',
+      r.consumption || r.mainCourse || 'NADA',
+      r.observation || '-'
+    ]);
+    exportToCSV(`historial_comidas_${new Date().toLocaleDateString()}.csv`, headers, rows);
+  };
+
   const getParentName = (parentId?: string | null) => {
     if (!parentId) return undefined;
     return parents.find((p) => p.id === parentId)?.username;
@@ -810,7 +824,10 @@ export default function TeacherDashboard() {
                 {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
-            <button className="btn-primary" onClick={fetchHistory} disabled={historyLoading}>{historyLoading ? '...' : '🔍 Buscar'}</button>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+              <button className="btn-primary" onClick={fetchHistory} disabled={historyLoading}>{historyLoading ? '...' : '🔍 Buscar'}</button>
+              <button className="btn-outline" onClick={handleExportHistory} disabled={historyRecords.length === 0} style={{ padding: '0.5rem 1rem' }}>📥 Exportar</button>
+            </div>
           </div>
 
           <div className="data-table-wrapper glass-panel">

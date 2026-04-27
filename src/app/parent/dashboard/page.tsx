@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { exportToCSV } from '@/lib/export';
 import './parent.css';
 
 type ConsumptionLevel = 'NADA' | 'POCO' | 'TODO';
@@ -113,6 +114,18 @@ export default function ParentDashboard() {
     router.push('/login');
   };
 
+  const handleExportHistory = () => {
+    if (meals.length === 0) return;
+    const headers = ['Fecha', 'Menú', 'Consumo', 'Observación'];
+    const rows = meals.map(m => [
+      new Date(m.date).toLocaleDateString('es-CL'),
+      m.menuText || '-',
+      m.consumption || m.mainCourse || 'NADA',
+      m.observation || '-'
+    ]);
+    exportToCSV(`historial_${selectedStudent?.name}_${new Date().toLocaleDateString('es-CL')}.csv`, headers, rows);
+  };
+
   const selectedStudent = students.find(s => s.id === selectedStudentId);
 
   // Line Chart Data
@@ -185,7 +198,7 @@ export default function ParentDashboard() {
             {meals.length > 0 && (
               <div className="stats-cards">
                 <div className="glass-panel summary-card">
-                  <div className="summary-label">Promedio Plato Principal (7 días)</div>
+                  <div className="summary-label">Promedio Consumo Diario (7 días)</div>
                   <div className="summary-value">{Math.round(averageConsumption)}%</div>
                   <div className="summary-bar-track">
                     <div className="summary-bar-fill" style={{ width: `${averageConsumption}%` }}></div>
@@ -274,7 +287,12 @@ export default function ParentDashboard() {
             </div>
 
             <div className="glass-panel" style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column' }}>
-              <h3 className="section-title" style={{ marginBottom: '1.25rem' }}>📋 Historial Reciente</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <h3 className="section-title" style={{ marginBottom: 0 }}>📋 Historial Reciente</h3>
+                {meals.length > 0 && (
+                  <button className="btn-outline" onClick={handleExportHistory} style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>📥 Exportar</button>
+                )}
+              </div>
               <div className="data-table-wrapper" style={{ maxHeight: '250px', overflowY: 'auto' }}>
                 {meals.length === 0 ? (
                   <p className="no-info">No hay historial disponible.</p>
