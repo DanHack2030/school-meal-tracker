@@ -96,7 +96,7 @@ export default function AdminDashboard() {
 
   const handleAddTeacher = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName || !course) return;
+    if (!fullName) return;
     
     setSaving(true);
     setError('');
@@ -106,7 +106,7 @@ export default function AdminDashboard() {
       const res = await fetch('/api/admin/teachers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName, course, email: email || undefined }),
+        body: JSON.stringify({ fullName, email: email || undefined }),
       });
       
       const data = await res.json();
@@ -134,7 +134,7 @@ export default function AdminDashboard() {
       const res = await fetch(`/api/admin/teachers/${editingTeacher.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName: editFullName, course: editCourse, isActive: editIsActive, password: editPassword || undefined, email: editEmail || undefined }),
+        body: JSON.stringify({ fullName: editFullName, isActive: editIsActive, password: editPassword || undefined, email: editEmail || undefined }),
       });
       if (res.ok) {
         setShowEditModal(false);
@@ -271,20 +271,7 @@ export default function AdminDashboard() {
                 required
               />
             </div>
-            <div className="form-group flex-1" style={{ marginBottom: 0 }}>
-              <label className="label">Curso / Nivel</label>
-              <select
-                className="form-input"
-                style={{ padding: '0.75rem 1rem', cursor: 'pointer' }}
-                value={course}
-                onChange={(e) => setCourse(e.target.value)}
-              >
-                <option value="">Seleccione un Curso</option>
-                {COURSE_OPTIONS.map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
+
             <button type="submit" className="btn-primary" disabled={saving} style={{ padding: '0.75rem 2rem', fontWeight: 600 }}>
               {saving ? 'Guardando...' : 'Crear Acceso'}
             </button>
@@ -346,7 +333,7 @@ export default function AdminDashboard() {
                 <tr>
                   <th onClick={() => handleSort('fullName')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>Nombre del Profesor {sortField === 'fullName' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                   <th onClick={() => handleSort('email')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>Correo {sortField === 'email' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                  <th onClick={() => handleSort('course')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>Curso {sortField === 'course' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+
 
                   <th onClick={() => handleSort('students')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>Alumnos {sortField === 'students' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                   <th>Estado</th>
@@ -363,7 +350,7 @@ export default function AdminDashboard() {
                     <tr key={t.id}>
                       <td className="parent-username" style={{ fontWeight: 600 }}>🎓 {t.fullName}</td>
                       <td style={{ fontSize: '0.85rem' }}>{t.email || <span className="text-muted">Sin correo</span>}</td>
-                      <td><span className="parent-chip" style={{ background: 'rgba(219, 39, 119, 0.1)', color: '#ec4899', border: '1px solid #ec4899' }}>{t.course}</span></td>
+
 
                       <td>{t._count.students}</td>
                       <td>
@@ -405,20 +392,8 @@ export default function AdminDashboard() {
                 <label>Correo Electrónico</label>
                 <input type="email" className="form-input" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="profesor@colegio.cl" required />
               </div>
-              <div className="form-group">
-                <label>Curso / Nivel</label>
-                <select 
-                  className="form-input" 
-                  style={{ cursor: 'pointer' }}
-                  value={editCourse} 
-                  onChange={(e) => setEditCourse(e.target.value)}
-                >
-                  <option value="">Seleccione un Curso</option>
-                  {COURSE_OPTIONS.map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
+
+
               <div className="form-group">
                 <label>Nueva Contraseña (opcional)</label>
                 <input type="password" className="form-input" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} placeholder="Dejar en blanco para no cambiar" />

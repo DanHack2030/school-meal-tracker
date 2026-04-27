@@ -5,6 +5,22 @@ import { useRouter } from 'next/navigation';
 import { exportToCSV } from '@/lib/export';
 import './teacher.css';
 
+const COURSE_OPTIONS = [
+  'Kinder A', 'Kinder B',
+  '1ro BA', '1ro BB',
+  '2do BA', '2do BB',
+  '3ro BA', '3ro BB',
+  '4to BA', '4to BB',
+  '5to BA', '5to BB',
+  '6to BA', '6to BB',
+  '7mo BA', '7mo BB',
+  '8vo BA', '8vo BB',
+  '1ro MA', '1ro MB',
+  '2do MA', '2do MB',
+  '3ro MA', '3ro MB',
+  '4to MA', '4to MB'
+];
+
 type ConsumptionLevel = 'NADA' | 'POCO' | 'TODO';
 type Tab = 'registros' | 'apoderados' | 'historial';
 
@@ -687,6 +703,7 @@ export default function TeacherDashboard() {
         const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
         if (uploadRes.ok) {
           const uploadData = await uploadRes.json();
+          // Ensure we don't overwrite if the user already selected another file
           setGlobalMenuImage(uploadData.url);
         }
       } catch (err) {
@@ -716,17 +733,17 @@ export default function TeacherDashboard() {
         </div>
 
         <div className="header-actions" style={{ flex: 1, justifyContent: 'flex-end' }}>
-          {(activeTab === 'registros' || activeTab === 'apoderados') && courses.length > 1 && (
+          {(activeTab === 'registros' || activeTab === 'apoderados') && (
             <div className="global-filter">
-              <label htmlFor="course-select">Filtrar por curso:</label>
+              <label htmlFor="course-select">Curso:</label>
               <select 
                 id="course-select" 
                 className="form-input filter-select" 
                 value={selectedCourse} 
                 onChange={(e) => setSelectedCourse(e.target.value)}
               >
-                <option value="">Todos los cursos</option>
-                {courses.map(c => <option key={c} value={c}>{c}</option>)}
+                <option value="">Cualquier curso</option>
+                {COURSE_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
           )}
