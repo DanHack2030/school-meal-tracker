@@ -111,7 +111,11 @@ function StudentCard({
   onEditProfile: (s: Student) => void;
   onRefetch: () => void;
 }) {
-  const existingMeal = student.meals[0];
+  const existingMeal = useMemo(() => {
+    if (!student.meals || student.meals.length === 0) return null;
+    // The API already filters for today, so meals[0] is today's meal
+    return student.meals[0];
+  }, [student.meals]);
   const [consumption, setConsumption] = useState<ConsumptionLevel | string>(existingMeal?.consumption || 'NADA');
   const [observation, setObservation] = useState(existingMeal?.observation || '');
   const [loading, setLoading] = useState(false);
